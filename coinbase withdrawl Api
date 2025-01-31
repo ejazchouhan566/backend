@@ -1,0 +1,42 @@
+// Full Node.js Express Backend for Coinbase Withdrawals
+require('dotenv').config();
+const express = require('express');
+const axios = require('axios');
+
+const app = express();
+app.use(express.json());
+
+const COINBASE_API_URL = "https://api.coinbase.com/v2/accounts";
+const API_KEY = process.env.COINBASE_API_KEY; // Store securely
+const USER_WALLET_ADDRESS = process.env.USER_WALLET_ADDRESS; // User's crypto address
+
+// Handle Withdrawal Requests
+app.post('/withdraw', async (req, res) => {
+    const { userId, amount } = req.body;
+
+    if (!userId || amount < 1) {
+        return res.status(400).json({ success: false, message: "Invalid withdrawal request" });
+    }
+
+    try {
+        // Send funds using Coinbase API
+        const response = await axios.post(
+            `${COINBASE_API_URL}/send`,
+            {
+                type: "send",
+                to: USER_WALLET_ADDRESS,  // User's crypto address
+                amount: amount.toFixed(2),
+                currency: "USD"
+            },
+            { headers: { Authorization: `Bearer ${API_KEY}` } }
+        );
+
+        return res.json({ success: true, message: "Withdrawal processed!", data: response.data });
+    } catch (error) {
+        console.error("Withdrawal Error:", error.response?.data || error.message);
+        return res.status(500).json({ success: false, message: "Withdrawal failed." });
+    }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
